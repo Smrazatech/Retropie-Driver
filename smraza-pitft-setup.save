@@ -3,7 +3,7 @@
 set -e
 
 function print_version() {
-    echo "Smraza-Retropie-setup v1.0"
+    echo "Smraza Retropie setup v1.0"
     exit 1
 }
 
@@ -68,13 +68,13 @@ function ask() {
 
 # update /boot/config.txt with appropriate values
 function update_configtxt() {
-    
     if grep -q "smraza-pitft-setup" "/boot/config.txt"; then
         echo "Already have a smraza-pitft-setup section in /boot/config.txt."
         echo "Adding new section, but please run:"
         echo "sudo nano /boot/config.txt"
         echo "...and remove any duplicate sections."
     fi
+
     date=`date`
 
     cat >> /boot/config.txt <<EOF
@@ -85,53 +85,14 @@ device_tree=bcm2708-rpi-b-plus.dtb
 [pi2]
 device_tree=bcm2709-rpi-2-b.dtb
 [pi3]
-dtoverlay=waveshare35a,spi=32000000,fps=60
+device_tree=bcm2710-rpi-3-b.dtb
 [all]
 dtparam=spi=on
-dtoverlay=waveshare35a
+dtoverlay=waveshare35a,spi=32000000,fps=60
 # --- end smraza-pitft-setup $date ---
 EOF
 
 }
-
-function install_dtoverlays() {
-
-sudo cp ./waveshare35a-overlay.dtb /boot/overlays/waveshare35a.dtbo
-sudo cp ./waveshare35a-overlay.dtb /boot/overlays/
-
-}
-
-function install_fbcp() {
-
-sudo apt-get install cmake
-
-}
-
-function install_console() {
-    cat > /etc/rc.local <<EOF 
-#!/bin/sh -e
-#
-# rc.local
-#
-# This script is executed at the end of each multiuser runlevel.
-# Make sure that the script will "exit 0" on success or any other
-# value on error.
-#
-# In order to enable or disable this script just change the execution
-# bits.
-#
-# By default this script does nothing.
-
-# Print the IP address
-_IP=$(hostname -I) || true
-if [ "$_IP" ]; then
-  printf "My IP address is %s\n" "$_IP"
-fi
-
-exit 0
-EOF
-}
-
 # MAIN
 
 target_homedir="/home/pi"
@@ -150,33 +111,45 @@ do
         -v)
             print_version
             ;;
+	-r)
+            pi_rotation
+            ;;
     esac
 done
-
-
 # check init system (technique borrowed from raspi-config):
-info Retropie "Install overlays..."
-install_dtoverlays || bail "unable to install overlays"
+info PITFT 'Checking init system...'
+fi
 
-info Retropie "Updating /boot/config.txt..."
+info PITFT "Updating X11 default calibration..."
+update_xorg || bail "Unable to update /etc/X11/xorg.conf.d/99-calibration.conf"
+
+info PITFT "Updating X11 setup tweaks..."
+update_x11profile || bail "Unable to update X11 setup"
+
+info PITFT "Updating TSLib default calibration..."
+update_pointercal || bail "Unable to update /etc/pointercal"
+
+info PITFT "Updating SysFS rules for Touchscreen..."
+update_udev || bail "Unable to update /etc/udev/rules.d"
+
+# ask for console access
+if ask "Would you like the console to appear on the PiTFT display?"; then
+    info PITFT "Updating console to PiTFT..."
+    install_console || bail "Unable to configure console"
+else
+    info PITFT "Making sure console doesn't use PiTFT"
+    uninstall_console || bail "Unable to configure console"
+fi
+
+info PITFT "Updating /etc/modules..."
+update_etcmodules || bail "Unable to update /etc/modules"
+
+# update_bootprefs || bail "Unable to set boot preferences"
+info PITFT "Updating /boot/config.txt..."
 update_configtxt || bail "Unable to update /boot/config.txt"
 
-info Retropie "Install fbcp..."
-install_fbcp || bail "Unable to install fbcp"
-
-cd /home/pi//Retropie-Driver/rpi-fbcp 
-mkdir build
-cd build/
-cmake ..
-make
-sudo install fbcp /usr/local/bin/fbcp
-
-
-info Retropie "Install install_console..."
-install_console || bail "Unable to install console"
-
-info Retropie "Success!"
-info Retropie "Notes:"
+info PITFT "Success!"
+info PITFT "Notes:"
 echo "Please don't run rpi-update, or you'll have to re-install a kernel"
 echo "with PiTFT support.  For more info, see:"
 echo
