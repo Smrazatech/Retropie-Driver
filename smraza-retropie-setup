@@ -102,6 +102,8 @@ sudo cp ./waveshare35a-overlay.dtb /boot/overlays/
 }
 
 function install_fbcp() {
+
+sudo cp ./rpi-fbcp /home/pi/
 cd ~
 sudo apt-get install cmake
 mkdir build
@@ -149,6 +151,9 @@ update_configtxt || bail "Unable to update /boot/config.txt"
 
 info Retropie "Install fbcp..."
 install_fbcp || bail "Unable to install fbcp"
+
+info Retropie "Install install_console..."
+install_console || bail "Unable to install console"
 
 info Retropie "Success!"
 info Retropie "Notes:"
