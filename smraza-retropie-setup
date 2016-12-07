@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+
+set -e
+
+function print_version() {
+    echo "Smraza-Retropie-setup v1.0"
+    exit 1
+}
+
+function print_help() {
+    echo "    -h            Print this help"
+    echo "    -v            Print version information"
+    exit 1
+}
+
+group=SMRAZA
+function info() {
+    system="$1"
+    group="${system}"
+    shift
+    FG="1;32m"
+    BG="40m"
+    echo -e "[\033[${FG}\033[${BG}${system}\033[0m] $*"
+}
+
+function bail() {
+    FG="1;31m"
+    BG="40m"
+    echo -en "[\033[${FG}\033[${BG}${group}\033[0m] "
+    if [ -z "$1" ]; then
+        echo "Exiting due to error"
+    else
+        echo "Exiting due to error: $*"
+    fi
+    exit 1
+}
+
+function ask() {
+    # http://djm.me/ask
+    while true; do
+
+        if [ "${2:-}" = "Y" ]; then
+            prompt="Y/n"
+            default=Y
+        elif [ "${2:-}" = "N" ]; then
+            prompt="y/N"
+            default=N
+        else
+            prompt="y/n"
+            default=
+        fi
+
+        # Ask the question
+        read -p "$1 [$prompt] " REPLY
+
+        # Default?
+        if [ -z "$REPLY" ]; then
+            REPLY=$default
+        fi
+
+        # Check if the reply is valid
+        case "$REPLY" in
+            Y*|y*) return 0 ;;
+            N*|n*) return 1 ;;
+        esac
+    done
+}
+
+# update /boot/config.txt with appropriate values
+function update_configtxt() {
+    
+    if grep -q "smraza-pitft-setup" "/boot/config.txt"; then
+        echo "Already have a smraza-pitft-setup section in /boot/config.txt."
+        echo "Adding new section, but please run:"
+        echo "sudo nano /boot/config.txt"
+        echo "...and remove any duplicate sections."
+    fi
+    date=`date`
+
+    cat >> /boot/config.txt <<EOF
+
+# --- added by smraza-pitft-setup $date ---
+[pi1]
+device_tree=bcm2708-rpi-b-plus.dtb
+[pi2]
+device_tree=bcm2709-rpi-2-b.dtb
+[pi3]
+dtoverlay=waveshare35a,spi=32000000,fps=60
+[all]
+dtparam=spi=on
+dtoverlay=waveshare35a
+# --- end smraza-pitft-setup $date ---
+EOF
+
+}
+
+function install_dtoverlays() {
+
+sudo cp ./waveshare35a-overlay.dtb /boot/overlays/waveshare35a.dtbo
+sudo cp ./waveshare35a-overlay.dtb /boot/overlays/
+
+}
+
+function install_fbcp() {
+cd ~
+sudo apt-get install cmake
+mkdir build
+cd build/
+cmake ..
+make
+sudo install fbcp /usr/local/bin/fbcp
+
+}
+
+function install_console() {
+    cat > /etc/rc.local <<EOF
+/usr/local/bin/fbcp &
+EOF
+}
+
+# MAIN
+
+target_homedir="/home/pi"
+
+args=$(getopt -uo 'hvri:t:o:b:u:' -- $*)
+[ $? != 0 ] && print_help
+set -- $args
+
+for i
+do
+    case "$i"
+    in
+        -h)
+            print_help
+            ;;
+        -v)
+            print_version
+            ;;
+    esac
+done
+
+
+# check init system (technique borrowed from raspi-config):
+info Retropie "Install overlays..."
+install_dtoverlays || bail "unable to install overlays"
+
+info Retropie "Updating /boot/config.txt..."
+update_configtxt || bail "Unable to update /boot/config.txt"
+
+info Retropie "Install fbcp..."
+install_fbcp || bail "Unable to install fbcp"
+
+info Retropie "Success!"
+info Retropie "Notes:"
+echo "Please don't run rpi-update, or you'll have to re-install a kernel"
+echo "with PiTFT support.  For more info, see:"
+echo
+echo
+read -p "Reboot to apply changes? (y/n): " -n 1 -r
+echo
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  reboot
+fi
