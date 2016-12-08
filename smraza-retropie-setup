@@ -4,6 +4,8 @@ set -e
 
 function print_version() {
     echo "Smraza-Retropie-setup v1.0"
+    echo "I'm technical director of Smraza, my personal email:singing99@live.com"
+    echo "Designed by Keen"
     exit 1
 }
 
@@ -68,8 +70,8 @@ function ask() {
 
 # update /boot/config.txt with appropriate values
 function update_configtxt() {
-    
-    if grep -q "smraza-pitft-setup" "/boot/config.txt"; then
+
+    if grep -q "smraza-retropie-setup" "/boot/config.txt"; then
         echo "Already have a smraza-pitft-setup section in /boot/config.txt."
         echo "Adding new section, but please run:"
         echo "sudo nano /boot/config.txt"
@@ -79,7 +81,7 @@ function update_configtxt() {
 
     cat >> /boot/config.txt <<EOF
 
-# --- added by smraza-pitft-setup $date ---
+# --- added by smraza-retropie-setup $date ---
 [pi1]
 device_tree=bcm2708-rpi-b-plus.dtb
 [pi2]
@@ -88,12 +90,17 @@ device_tree=bcm2709-rpi-2-b.dtb
 device_tree=bcm2710-rpi-3-b.dtb
 [all]
 dtparam=spi=on
-dtoverlay=waveshare35a,speed=20000000,fps=30
-# --- end smraza-pitft-setup $date ---
+dtoverlay=waveshare35a,rotate=90,speed=20000000,fps=30
+# --- end smraza-retropie-setup $date ---
 EOF
 
 }
 
+function LCD_rotation() {
+
+	sed -i 's/rotate=90/rotate=270/g' "/boot/config.txt"
+	sed -i 's/rotate=270/rotate=90/g' "/boot/config.txt"
+}
 function install_dtoverlays() {
 
 sudo cp ./waveshare35a-overlay.dtb /boot/overlays/waveshare35a.dtbo
@@ -132,7 +139,32 @@ fi
 exit 0
 EOF
 }
+function Close_LCD() {
 
+	 cat > /etc/rc.local <<EOF 
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+# Print the IP address
+_IP=$(hostname -I) || true
+if [ "$_IP" ]; then
+  printf "My IP address is %s\n" "$_IP"
+fi
+
+exit 0
+EOF
+
+}
 # MAIN
 
 target_homedir="/home/pi"
@@ -150,6 +182,12 @@ do
             ;;
         -v)
             print_version
+            ;;
+        -r)
+            LCD_rotation
+            ;;
+        -c)
+            Close_LCD
             ;;
     esac
 done
@@ -171,8 +209,7 @@ install_console || bail "Unable to install console"
 info Retropie "Success!"
 info Retropie "Notes:"
 echo "Please don't run rpi-update, or you'll have to re-install a kernel"
-echo "with PiTFT support.  For more info, see:"
-echo
+echo "If you have any technical questions, please feel free to contact our support staff via email at support@smraza.com"
 echo
 read -p "Reboot to apply changes? (y/n): " -n 1 -r
 echo
