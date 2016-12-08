@@ -12,8 +12,6 @@ function print_version() {
 function print_help() {
     echo "    -h            Print this help"
     echo "    -v            Print version information"
-    echo "    -o            Open 3.5 inch LCD"
-    echo "    -c            Close 3.5 inch LCD"
     echo "    -s [rotation] Only support '0' or '180'"
     exit 1
 }
@@ -154,40 +152,12 @@ if [ "$_IP" ]; then
   printf "My IP address is %s\n" "$_IP"
 fi
 
-fbcp=1 
-if [ "$fbcp" -eq 1 ]; then
 /usr/local/bin/fbcp &
-fi
 
 exit 0
 EOF
 }
 
-function Open_LCD() {
-
-if grep -q "fbcp=1" "/etc/rc.local"; then
-        bail "Already open 3.5 inch LCD."
-	exit 1;
-else
-	sed -i 's/fbcp=0/fbcp=1/g' "/etc/rc.local"
-	info Retropie "Successfully open LCD!"
-	exit 1;
-fi
-
-}
-
-function Close_LCD() {
-
-if grep -q "fbcp=0" "/etc/rc.local"; then
-        bail "Already close 3.5 inch LCD."
-	exit 1;
-else
-	sed -i 's/fbcp=1/fbcp=0/g' "/etc/rc.local"
-	info Retropie "Successfully close LCD!"
-	exit 1;
-fi
-
-}
 # MAIN
 
 target_homedir="/home/pi"
@@ -206,12 +176,6 @@ do
         -v)
             print_version
             ;;
-	-o)
-            Open_LCD
-	    ;;
-	-c)
-	    Close_LCD
-	    ;;
         -s)
 	    rotation="$2"
             echo "Rotation = ${2}"
@@ -222,7 +186,6 @@ do
             ;;
     esac
 done
-
 
 # check init system (technique borrowed from raspi-config):
 info Retropie "Install overlays..."
