@@ -85,10 +85,10 @@ device_tree=bcm2708-rpi-b-plus.dtb
 [pi2]
 device_tree=bcm2709-rpi-2-b.dtb
 [pi3]
-dtoverlay=waveshare35a,spi=32000000,fps=60
+device_tree=bcm2710-rpi-3-b.dtb
 [all]
 dtparam=spi=on
-dtoverlay=waveshare35a
+dtoverlay=waveshare35a,speed=20000000,fps=30
 # --- end smraza-pitft-setup $date ---
 EOF
 
@@ -103,7 +103,7 @@ sudo cp ./waveshare35a-overlay.dtb /boot/overlays/
 
 function install_fbcp() {
 
-sudo apt-get install cmake
+sudo install fbcp /usr/local/bin/fbcp
 
 }
 
