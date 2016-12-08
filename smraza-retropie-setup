@@ -165,14 +165,6 @@ update_configtxt || bail "Unable to update /boot/config.txt"
 info Retropie "Install fbcp..."
 install_fbcp || bail "Unable to install fbcp"
 
-cd /home/pi//Retropie-Driver/rpi-fbcp 
-mkdir build
-cd build/
-cmake ..
-make
-sudo install fbcp /usr/local/bin/fbcp
-
-
 info Retropie "Install install_console..."
 install_console || bail "Unable to install console"
 
