@@ -74,16 +74,16 @@ function ask() {
 # update /boot/config.txt with appropriate values
 function update_configtxt() {
 
-    if grep -q "smraza-retropie-setup" "/boot/config.txt"; then
+if grep -q "smraza-retropie-setup" "/boot/config.txt"; then
         echo "Already have a smraza-pitft-setup section in /boot/config.txt."
         echo "Adding new section, but please run:"
         echo "sudo nano /boot/config.txt"
         echo "...and remove any duplicate sections."
-    fi
+        exit 1;
+else
+
     date=`date`
-
     cat >> /boot/config.txt <<EOF
-
 # --- added by smraza-retropie-setup $date ---
 [pi1]
 device_tree=bcm2708-rpi-b-plus.dtb
@@ -96,19 +96,19 @@ dtparam=spi=on
 dtoverlay=waveshare35a,rotate=90,speed=20000000,fps=30
 # --- end smraza-retropie-setup $date ---
 EOF
-
+fi
 }
 
 function LCD_rotation() {
 
 	if [ "${rotation}" == "0" ]; then
 	   sed -i 's/rotate=270/rotate=90/g' "/boot/config.txt"
-           info PITFT "Calibration success!"
+           info Retropie "Rotation success!"
 	elif [ "${rotation}" == "180" ]; then
 	   sed -i 's/rotate=90/rotate=270/g' "/boot/config.txt"
-           info PITFT "Calibration success!"
+           info Retropie "Rotation success!"
 	else
-	   info rtropie "Only support '0' or '180'"
+	   bail "Only support '0' or '180'"
 	   exit 1        
 	fi
 echo
@@ -153,7 +153,11 @@ _IP=$(hostname -I) || true
 if [ "$_IP" ]; then
   printf "My IP address is %s\n" "$_IP"
 fi
+
+fbcp=1 
+if [ "$fbcp" -eq 1 ]; then
 /usr/local/bin/fbcp &
+fi
 
 exit 0
 EOF
@@ -161,12 +165,12 @@ EOF
 
 function Open_LCD() {
 
-if grep -q "dtparam=spi=on" "/boot/config.txt"; then
+if grep -q "fbcp=1" "/etc/rc.local"; then
         bail "Already open 3.5 inch LCD."
 	exit 1;
 else
-	sed -i 's/dtparam=spi=off/dtparam=spi=on/g' "/boot/config.txt"
-	info retropie "Successfully open LCD!"
+	sed -i 's/fbcp=0/fbcp=1/g' "/etc/rc.local"
+	info Retropie "Successfully open LCD!"
 	exit 1;
 fi
 
@@ -174,12 +178,12 @@ fi
 
 function Close_LCD() {
 
-if grep -q "dtparam=spi=off" "/boot/config.txt"; then
+if grep -q "fbcp=0" "/etc/rc.local"; then
         bail "Already close 3.5 inch LCD."
 	exit 1;
 else
-	sed -i 's/dtparam=spi=on/dtparam=spi=off/g' "/boot/config.txt"
-	info retropie "Successfully close LCD!"
+	sed -i 's/fbcp=1/fbcp=0/g' "/etc/rc.local"
+	info Retropie "Successfully close LCD!"
 	exit 1;
 fi
 
