@@ -12,6 +12,9 @@ function print_version() {
 function print_help() {
     echo "    -h            Print this help"
     echo "    -v            Print version information"
+    echo "    -o            Open 3.5 inch LCD"
+    echo "    -c            Close 3.5 inch LCD"
+    echo "    -s [rotation] Only support '0' or '180'"
     exit 1
 }
 
@@ -98,8 +101,24 @@ EOF
 
 function LCD_rotation() {
 
-	sed -i 's/rotate=90/rotate=270/g' "/boot/config.txt"
-	sed -i 's/rotate=270/rotate=90/g' "/boot/config.txt"
+	if [ "${rotation}" == "0" ]; then
+	   sed -i 's/rotate=270/rotate=90/g' "/boot/config.txt"
+           info PITFT "Calibration success!"
+	elif [ "${rotation}" == "180" ]; then
+	   sed -i 's/rotate=90/rotate=270/g' "/boot/config.txt"
+           info PITFT "Calibration success!"
+	else
+	   info rtropie "Only support '0' or '180'"
+	   exit 1        
+	fi
+echo
+read -p "Reboot to apply changes? (y/n): " -n 1 -r
+echo
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  reboot
+fi
+exit 1
 }
 function install_dtoverlays() {
 
@@ -139,37 +158,37 @@ fi
 exit 0
 EOF
 }
-function Close_LCD() {
 
-	 cat > /etc/rc.local <<EOF 
-#!/bin/sh -e
-#
-# rc.local
-#
-# This script is executed at the end of each multiuser runlevel.
-# Make sure that the script will "exit 0" on success or any other
-# value on error.
-#
-# In order to enable or disable this script just change the execution
-# bits.
-#
-# By default this script does nothing.
+function Open_LCD() {
 
-# Print the IP address
-_IP=$(hostname -I) || true
-if [ "$_IP" ]; then
-  printf "My IP address is %s\n" "$_IP"
+if grep -q "dtparam=spi=on" "/boot/config.txt"; then
+        bail "Already open 3.5 inch LCD."
+	exit 1;
+else
+	sed -i 's/dtparam=spi=off/dtparam=spi=on/g' "/boot/config.txt"
+	info retropie "Successfully open LCD!"
+	exit 1;
 fi
 
-exit 0
-EOF
+}
+
+function Close_LCD() {
+
+if grep -q "dtparam=spi=off" "/boot/config.txt"; then
+        bail "Already close 3.5 inch LCD."
+	exit 1;
+else
+	sed -i 's/dtparam=spi=on/dtparam=spi=off/g' "/boot/config.txt"
+	info retropie "Successfully close LCD!"
+	exit 1;
+fi
 
 }
 # MAIN
 
 target_homedir="/home/pi"
 
-args=$(getopt -uo 'hvri:t:o:b:u:' -- $*)
+args=$(getopt -uo 'hvricoa:t:b:u:s:' -- $*)
 [ $? != 0 ] && print_help
 set -- $args
 
@@ -183,9 +202,17 @@ do
         -v)
             print_version
             ;;
-        -r)
+	-o)
+            Open_LCD
+	    ;;
+	-c)
+	    Close_LCD
+	    ;;
+        -s)
+	    rotation="$2"
+            echo "Rotation = ${2}"
             LCD_rotation
-            ;;
+	    ;;
         -c)
             Close_LCD
             ;;
