@@ -92,9 +92,9 @@ device_tree=bcm2709-rpi-2-b.dtb
 [pi3]
 device_tree=bcm2710-rpi-3-b.dtb
 [all]
-dtparam=audio=on
+hdmi_force_hotplug=1
 dtparam=spi=on
-dtoverlay=waveshare35a,rotate=90,speed=60000000,fps=60
+dtoverlay=waveshare35a,rotate=90,speed=20000000,fps=60
 # --- end smraza-retropie-setup $date ---
 EOF
 fi
@@ -243,7 +243,7 @@ info Retropie "Success!"
 info Retropie "Notes:"
 echo "Please don't run rpi-update, or you'll have to re-install a kernel"
 echo "If you have any technical questions, please feel free to contact our support staff via email at support@smraza.com"
-echo "Default open high refresh rate, low quality mode. If you want to open low refresh rate, high quality mode, run: sudo ./smraza-retropie-setup -f L"
+echo "Default open LOW refresh rate, HIGH quality mode. If you want to open HIGH refresh rate, LOW quality mode, run: sudo ./smraza-retropie-setup -f H"
 echo
 read -p "Reboot to apply changes? (y/n): " -n 1 -r
 echo
