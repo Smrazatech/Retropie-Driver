@@ -13,6 +13,8 @@ function print_help() {
     echo "    -h            Print this help"
     echo "    -v            Print version information"
     echo "    -s [rotation] Only support '0' or '180'"
+    echo "    -f [refresh rate] Adjust the refresh rate,only support H/L mode"
+    echo "    Tips: Refresh rate increases, which will reduce the quality of the picture."
     exit 1
 }
 
@@ -90,13 +92,45 @@ device_tree=bcm2709-rpi-2-b.dtb
 [pi3]
 device_tree=bcm2710-rpi-3-b.dtb
 [all]
+dtparam=audio=on
 dtparam=spi=on
-dtoverlay=waveshare35a,rotate=90,speed=20000000,fps=30
+dtoverlay=waveshare35a,rotate=90,speed=60000000,fps=60
 # --- end smraza-retropie-setup $date ---
 EOF
 fi
 }
 
+function Refresh_rate() {
+
+sed -i '/dtoverlay=waveshare35a,rotate/'d /boot/config.txt
+sed -i '$d' /boot/config.txt
+
+if [ "${speed}" != L ] && [ "${speed}" != H ]; then
+bail "Adjust the refresh rate,only support H/L level..."
+exit 1;
+elif [ "${speed}" == L ]; then
+       spd=20000000
+info Retropie "Open low refresh rate, high quality mode. Switch Mode: sudo ./smraza-retropie-setup -f H"
+elif [ "${speed}" == H ]; then
+       spd=60000000
+info Retropie "Open high refresh rate, low quality mode. Switch Mode: sudo ./smraza-retropie-setup -f L"
+fi
+
+date=`date`
+cat >> /boot/config.txt <<EOF
+dtoverlay=waveshare35a,rotate=90,speed=$spd,fps=60
+# --- end smraza-retropie-setup $date --
+EOF
+info Retropie "Switch mode success!"
+echo
+read -p "Reboot to apply changes? (y/n): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  reboot
+fi
+exit 1
+		
+}
 function LCD_rotation() {
 
 	if [ "${rotation}" == "0" ]; then
@@ -162,7 +196,7 @@ EOF
 
 target_homedir="/home/pi"
 
-args=$(getopt -uo 'hvricoa:t:b:u:s:' -- $*)
+args=$(getopt -uo 'hvricoa:t:b:u:s:f:' -- $*)
 [ $? != 0 ] && print_help
 set -- $args
 
@@ -180,6 +214,11 @@ do
 	    rotation="$2"
             echo "Rotation = ${2}"
             LCD_rotation
+	    ;;
+        -f)
+	    speed="$2"
+            echo "Refresh_rate = ${2}"            
+	    Refresh_rate
 	    ;;
         -c)
             Close_LCD
@@ -204,6 +243,7 @@ info Retropie "Success!"
 info Retropie "Notes:"
 echo "Please don't run rpi-update, or you'll have to re-install a kernel"
 echo "If you have any technical questions, please feel free to contact our support staff via email at support@smraza.com"
+echo "Default open high refresh rate, low quality mode. If you want to open low refresh rate, high quality mode, run: sudo ./smraza-retropie-setup -f L"
 echo
 read -p "Reboot to apply changes? (y/n): " -n 1 -r
 echo
